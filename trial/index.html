@@ -1,0 +1,2283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BELIEVERS - Space Cadet Training Simulation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #03060d;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #ffffff;
+    }
+
+    #app-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ==========================================================
+       1. STAGE 1: BELIEVERS STUDIOS LOGO (Matches Image 2)
+       ========================================================== */
+    #logo-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 200;
+      background-color: #e5272a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.7s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.7s cubic-bezier(0.2, 0.9, 0.3, 1);
+      cursor: pointer;
+    }
+
+    #logo-screen.hide {
+      opacity: 0;
+      transform: scale(1.04);
+      pointer-events: none;
+    }
+
+    .logo-wrapper {
+      position: relative;
+      display: inline-block;
+      max-width: 820px;
+      width: 85vw;
+      text-align: center;
+    }
+
+    .logo-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.35));
+    }
+
+    /* Live 2-second Metallic Specular Sheen Sweep */
+    .metallic-sheen-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: linear-gradient(
+        115deg,
+        transparent 0%,
+        transparent 35%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.75) 47%,
+        rgba(255, 255, 255, 1.0) 50%,
+        rgba(255, 255, 255, 0.75) 53%,
+        rgba(255, 255, 255, 0.1) 60%,
+        transparent 65%,
+        transparent 100%
+      );
+      background-size: 280% 100%;
+      background-position: 180% 0;
+      mix-blend-mode: overlay;
+    }
+
+    .metallic-sheen-overlay.active-sweep {
+      animation: metallicTraverse 2.0s cubic-bezier(0.25, 1, 0.35, 1) forwards;
+    }
+
+    @keyframes metallicTraverse {
+      0% {
+        background-position: 180% 0;
+        filter: drop-shadow(0 0 0px rgba(255, 255, 255, 0));
+      }
+      40% {
+        filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.9));
+      }
+      100% {
+        background-position: -80% 0;
+        filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.2));
+      }
+    }
+
+    /* Optical Lens Flare Hotspot Tracking Shine */
+    #flare-tracker {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 320px;
+      height: 320px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0;
+      mix-blend-mode: screen;
+    }
+
+    .flare-core {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 1) 0%,
+        rgba(255, 230, 230, 0.8) 18%,
+        rgba(255, 120, 120, 0.35) 45%,
+        transparent 70%
+      );
+    }
+
+    .flare-beam {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 650px;
+      height: 6px;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 200, 200, 0.2) 20%,
+        rgba(255, 255, 255, 0.95) 50%,
+        rgba(255, 200, 200, 0.2) 80%,
+        transparent 100%
+      );
+      filter: blur(1.5px);
+    }
+
+    /* ==========================================================
+       2. STAGE 2: DASHBOARD (Matches Image 1 Exactly)
+       ========================================================== */
+    #dashboard-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      opacity: 1;
+      overflow: hidden;
+      perspective: 1200px;
+    }
+
+    /* Wallpaper with interactive mouse parallax effect */
+    .dashboard-bg-wrapper {
+      position: absolute;
+      top: -3%;
+      left: -3%;
+      width: 106%;
+      height: 106%;
+      background: url('dashboard-bg.jpg') no-repeat center center;
+      background-size: cover;
+      transform-style: preserve-3d;
+      transition: transform 0.12s cubic-bezier(0.1, 0.9, 0.2, 1);
+      will-change: transform;
+    }
+
+    /* Floating space dust & light rays overlay canvas */
+    #cockpit-dust-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* Dynamic mouse spotlight on cockpit */
+    .cockpit-cursor-light {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(0, 210, 255, 0.08) 0%, rgba(0, 120, 255, 0.03) 40%, transparent 70%);
+      mix-blend-mode: screen;
+      z-index: 6;
+      transition: opacity 0.3s;
+    }
+
+    /* ----------------------------------------------------------
+       TOP RIGHT CORNER: SIGN IN BUTTON (Matches Image 1)
+       ---------------------------------------------------------- */
+    .top-right-nav {
+      position: absolute;
+      top: 32px;
+      right: 36px;
+      z-index: 30;
+    }
+
+    .cockpit-sign-in-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 24px;
+      background: rgba(6, 18, 30, 0.82);
+      border: 2px solid #00d2ff;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 0 16px rgba(0, 210, 255, 0.45), inset 0 0 12px rgba(0, 210, 255, 0.2);
+      backdrop-filter: blur(8px);
+      transition: all 0.22s ease;
+    }
+
+    .cockpit-sign-in-btn:hover {
+      background: rgba(0, 210, 255, 0.25);
+      border-color: #55e4ff;
+      box-shadow: 0 0 24px rgba(0, 210, 255, 0.8), inset 0 0 16px rgba(0, 210, 255, 0.35);
+      transform: scale(1.02);
+    }
+
+    .cockpit-sign-in-btn .user-icon {
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Profile Badge when signed in */
+    .user-profile-badge {
+      display: none;
+      align-items: center;
+      gap: 14px;
+      padding: 8px 18px;
+      background: rgba(6, 20, 36, 0.85);
+      border: 2px solid #00d2ff;
+      border-radius: 8px;
+      box-shadow: 0 0 18px rgba(0, 210, 255, 0.5);
+      backdrop-filter: blur(10px);
+    }
+
+    .profile-avatar-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00d2ff, #0055ff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 1.1rem;
+      color: #030812;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 10px #00d2ff;
+    }
+
+    .profile-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .profile-callsign {
+      font-weight: 800;
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      color: #ffffff;
+      text-shadow: 0 0 8px rgba(0, 210, 255, 0.8);
+    }
+
+    .profile-rank {
+      font-size: 0.72rem;
+      color: #88c8f0;
+      letter-spacing: 0.08em;
+    }
+
+    .sign-out-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 60, 100, 0.6);
+      color: #ff6088;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 6px;
+      transition: all 0.2s;
+    }
+
+    .sign-out-btn:hover {
+      background: rgba(255, 60, 100, 0.3);
+      color: #ffffff;
+    }
+
+    /* ----------------------------------------------------------
+       BOTTOM LEFT CORNER: 4 BUTTONS (Matches Image 1 Exactly)
+       ---------------------------------------------------------- */
+    .cockpit-menu-stack {
+      position: absolute;
+      bottom: 50px;
+      left: 45px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .cockpit-btn {
+      width: 285px;
+      min-height: 54px;
+      background: rgba(6, 18, 30, 0.82);
+      border: 2px solid #00d2ff;
+      border-radius: 8px;
+      box-shadow: 0 0 16px rgba(0, 210, 255, 0.4), inset 0 0 12px rgba(0, 210, 255, 0.18);
+      backdrop-filter: blur(8px);
+      padding: 10px 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 14px;
+      transition: all 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+      color: #ffffff;
+      text-align: left;
+    }
+
+    .cockpit-btn:hover {
+      background: rgba(0, 210, 255, 0.25);
+      border-color: #6ee8ff;
+      box-shadow: 0 0 26px rgba(0, 210, 255, 0.8), inset 0 0 18px rgba(0, 210, 255, 0.35);
+      transform: translateX(8px);
+    }
+
+    .cockpit-btn:active {
+      transform: translateX(4px) scale(0.98);
+    }
+
+    .btn-icon-wrapper {
+      font-size: 1.45rem;
+      width: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      filter: drop-shadow(0 0 6px #00d2ff);
+    }
+
+    .btn-text-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      flex-grow: 1;
+    }
+
+    .btn-primary-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-shadow: 0 0 10px rgba(0, 210, 255, 0.6);
+    }
+
+    .btn-subtitle {
+      font-size: 0.72rem;
+      color: #92c5e5;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      margin-top: 1px;
+    }
+
+    .lock-icon-span {
+      font-size: 0.95rem;
+      color: #00d2ff;
+      margin-left: 8px;
+    }
+
+    /* Small Replay Logo pill bottom right */
+    .replay-logo-btn {
+      position: absolute;
+      bottom: 22px;
+      right: 32px;
+      z-index: 30;
+      background: rgba(6, 18, 30, 0.65);
+      border: 1px solid rgba(0, 210, 255, 0.35);
+      color: #88c8f0;
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .replay-logo-btn:hover {
+      background: rgba(0, 210, 255, 0.2);
+      color: #ffffff;
+      border-color: #00d2ff;
+    }
+
+    /* ==========================================================
+       3. AUTH MODAL — FULL SCREEN SPLIT PANEL
+       ========================================================== */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(14px);
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* The auth card fills most of the screen */
+    .auth-card {
+      display: flex;
+      width: 94vw;
+      height: 90vh;
+      max-width: 1200px;
+      max-height: 700px;
+      border-radius: 22px;
+      overflow: hidden;
+      background: #0d1117;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8);
+    }
+
+    /* LEFT PANEL — astronaut hero */
+    .auth-left-panel {
+      position: relative;
+      width: 44%;
+      min-width: 300px;
+      background: url('auth-astronaut.jpg') no-repeat center center;
+      background-size: cover;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 36px 32px;
+      overflow: hidden;
+    }
+
+    .auth-left-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.88) 0%,
+        rgba(0, 0, 0, 0.4) 35%,
+        rgba(0, 0, 0, 0.05) 60%,
+        transparent 100%
+      );
+      pointer-events: none;
+    }
+
+    .auth-left-panel::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        transparent 50%,
+        rgba(255, 160, 50, 0.06) 70%,
+        rgba(255, 120, 30, 0.12) 100%
+      );
+      pointer-events: none;
+    }
+
+    .auth-left-text {
+      position: relative;
+      z-index: 2;
+    }
+
+    .auth-left-title {
+      font-size: 2.6rem;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      text-shadow: 0 3px 20px rgba(0, 0, 0, 0.8);
+    }
+
+    .auth-left-subtitle {
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      color: #ff5a36;
+      text-transform: uppercase;
+      margin-top: 6px;
+      text-shadow: 0 0 12px rgba(255, 90, 54, 0.6);
+    }
+
+    /* RIGHT PANEL — form */
+    .auth-right-panel {
+      flex: 1;
+      padding: 48px 50px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow-y: auto;
+      background: #0d1117;
+    }
+
+    .auth-welcome-heading {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .auth-welcome-sub {
+      font-size: 0.92rem;
+      color: #6b7b8d;
+      margin-bottom: 32px;
+    }
+
+    /* Input fields with left icon */
+    .auth-input-group {
+      position: relative;
+      margin-bottom: 18px;
+    }
+
+    .auth-input-group .auth-field-icon {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.05rem;
+      color: #4a5568;
+      pointer-events: none;
+    }
+
+    .auth-input-group .auth-input {
+      width: 100%;
+      height: 54px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 0 50px 0 50px;
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.25s;
+    }
+
+    .auth-input-group .auth-input::placeholder {
+      color: #4a5568;
+    }
+
+    .auth-input-group .auth-input:focus {
+      border-color: rgba(0, 210, 255, 0.5);
+      box-shadow: 0 0 0 3px rgba(0, 210, 255, 0.08);
+      background: rgba(0, 210, 255, 0.03);
+    }
+
+    .auth-input-group .toggle-password-btn {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #4a5568;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+
+    .auth-input-group .toggle-password-btn:hover {
+      color: #ffffff;
+    }
+
+    /* Remember me + Forgot password */
+    .auth-options-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 26px;
+      font-size: 0.84rem;
+    }
+
+    .auth-remember-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #6b7b8d;
+      cursor: pointer;
+    }
+
+    .auth-remember-label input[type="checkbox"] {
+      accent-color: #00c98d;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .auth-forgot-link {
+      color: #6b7b8d;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.84rem;
+      font-family: inherit;
+      transition: color 0.2s;
+    }
+
+    .auth-forgot-link:hover {
+      color: #00d2ff;
+    }
+
+    /* Green login button */
+    .auth-submit-btn {
+      width: 100%;
+      height: 54px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.25s;
+      background: linear-gradient(135deg, #00c98d 0%, #00b87c 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 24px rgba(0, 200, 140, 0.3);
+      font-family: inherit;
+    }
+
+    .auth-submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0, 200, 140, 0.5);
+      background: linear-gradient(135deg, #00dda0 0%, #00c98d 100%);
+    }
+
+    .auth-submit-btn:active {
+      transform: translateY(0);
+    }
+
+    /* OR CONTINUE WITH divider */
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      margin: 26px 0;
+      gap: 16px;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .auth-divider span {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: #4a5568;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* Social buttons */
+    .auth-social-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .auth-social-btn {
+      flex: 1;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: #c0ccdd;
+      font-size: 0.9rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.22s;
+    }
+
+    .auth-social-btn:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .social-icon-google {
+      width: 20px;
+      height: 20px;
+      background: conic-gradient(from -45deg, #ea4335, #4285f4, #34a853, #fbbc05, #ea4335);
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .social-icon-fb {
+      width: 20px;
+      height: 20px;
+      background: #1877f2;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 900;
+    }
+
+    /* Switch link at bottom */
+    .auth-switch-text {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.86rem;
+      color: #6b7b8d;
+    }
+
+    .auth-switch-link {
+      background: none;
+      border: none;
+      color: #00d2ff;
+      font-weight: 700;
+      font-size: 0.86rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: color 0.2s;
+      margin-left: 4px;
+    }
+
+    .auth-switch-link:hover {
+      color: #55e4ff;
+      text-decoration: underline;
+    }
+
+    /* Close button */
+    .auth-close-btn {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.05);
+      color: #6b7b8d;
+      font-size: 1.3rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      z-index: 5;
+    }
+
+    .auth-close-btn:hover {
+      background: rgba(255, 60, 100, 0.25);
+      color: #ffffff;
+    }
+
+    /* ---------- SETTINGS / MULTIPLAYER modals (unchanged) ---------- */
+    .cockpit-modal-window {
+      position: relative;
+      width: 90%;
+      max-width: 520px;
+      background: linear-gradient(145deg, rgba(8, 20, 36, 0.96) 0%, rgba(4, 10, 20, 0.98) 100%);
+      border: 2px solid #00d2ff;
+      border-radius: 10px;
+      box-shadow: 0 0 45px rgba(0, 210, 255, 0.35), inset 0 0 20px rgba(0, 150, 255, 0.15);
+      padding: 30px 36px;
+    }
+
+    .modal-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(0, 210, 255, 0.3);
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+    }
+
+    .modal-headline {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      color: #ffffff;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-shadow: 0 0 12px rgba(0, 210, 255, 0.8);
+    }
+
+    .modal-close-cross {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .modal-close-cross:hover {
+      background: #ff3366;
+      border-color: #ff3366;
+    }
+
+    /* Field & button styles for settings/multiplayer modals */
+    .form-field-group {
+      margin-bottom: 15px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #92c5e5;
+      margin-bottom: 5px;
+      font-weight: 700;
+    }
+
+    .field-input {
+      width: 100%;
+      height: 42px;
+      background: rgba(2, 8, 16, 0.85);
+      border: 1.5px solid rgba(0, 210, 255, 0.35);
+      border-radius: 6px;
+      padding: 0 14px;
+      color: #ffffff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .field-input:focus {
+      border-color: #00d2ff;
+      box-shadow: 0 0 14px rgba(0, 210, 255, 0.45);
+      background: rgba(0, 25, 45, 0.5);
+    }
+
+    .field-hint-text {
+      font-size: 0.68rem;
+      color: #6ea0c5;
+      margin-top: 3px;
+    }
+
+    .action-submit-btn {
+      width: 100%;
+      height: 46px;
+      background: linear-gradient(90deg, #0077ff 0%, #00d2ff 100%);
+      border: none;
+      border-radius: 6px;
+      color: #030a16;
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: all 0.2s;
+      box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+    }
+
+    .action-submit-btn:hover {
+      background: linear-gradient(90deg, #00d2ff 0%, #ffffff 100%);
+      box-shadow: 0 0 30px rgba(0, 210, 255, 0.7);
+      transform: translateY(-1px);
+    }
+
+    /* OTP Screen */
+    .otp-stage-container {
+      display: none;
+      text-align: center;
+    }
+
+    .otp-info-p {
+      font-size: 0.88rem;
+      color: #c0ddf2;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .otp-email-highlight {
+      color: #00d2ff;
+      font-weight: 700;
+    }
+
+    .otp-slots-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .otp-box-digit {
+      width: 48px;
+      height: 58px;
+      background: rgba(2, 8, 16, 0.9);
+      border: 1.5px solid rgba(0, 210, 255, 0.4);
+      border-radius: 6px;
+      color: #ffffff;
+      font-size: 1.8rem;
+      font-weight: 800;
+      text-align: center;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .otp-box-digit:focus {
+      border-color: #00d2ff;
+      box-shadow: 0 0 18px rgba(0, 210, 255, 0.6);
+      background: rgba(0, 35, 65, 0.45);
+    }
+
+    .otp-timer-text {
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      color: #ffd000;
+      margin-bottom: 14px;
+    }
+
+    .resend-otp-link {
+      background: transparent;
+      border: none;
+      color: #00d2ff;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-top: 8px;
+      display: inline-block;
+    }
+
+    /* Sub-space Dispatch Toast Banner */
+    #incoming-otp-toast {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-150px);
+      z-index: 300;
+      background: linear-gradient(135deg, rgba(8, 24, 46, 0.96) 0%, rgba(2, 8, 16, 0.98) 100%);
+      border: 2px solid #00d2ff;
+      border-left: 6px solid #ffd000;
+      border-radius: 8px;
+      padding: 16px 28px;
+      box-shadow: 0 0 40px rgba(0, 210, 255, 0.5);
+      transition: transform 0.4s cubic-bezier(0.1, 0.9, 0.2, 1);
+      max-width: 500px;
+      width: 90%;
+    }
+
+    #incoming-otp-toast.active {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast-header-tag {
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      color: #ffd000;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .toast-content-text {
+      font-size: 0.9rem;
+      color: #ffffff;
+      line-height: 1.5;
+    }
+
+    .toast-otp-code {
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: 0.25em;
+      color: #00d2ff;
+      background: rgba(0, 210, 255, 0.12);
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-top: 4px;
+    }
+
+    /* Settings Sliders */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      background: rgba(4, 14, 28, 0.6);
+      padding: 14px 18px;
+      border: 1px solid rgba(0, 210, 255, 0.2);
+      border-radius: 6px;
+    }
+
+    .slider-label-box {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slider-main-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    .slider-sub-title {
+      font-size: 0.7rem;
+      color: #88c8f0;
+    }
+
+    .slider-control-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .styled-range {
+      width: 140px;
+      accent-color: #00d2ff;
+      cursor: pointer;
+    }
+
+    .slider-number-display {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #00d2ff;
+      min-width: 48px;
+      text-align: right;
+    }
+
+    /* Multiplayer Friends */
+    .friends-scroll-area {
+      max-height: 220px;
+      overflow-y: auto;
+      margin: 15px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 5px;
+    }
+
+    .friend-item-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(4, 14, 28, 0.7);
+      border: 1px solid rgba(0, 210, 255, 0.25);
+      border-radius: 6px;
+      padding: 10px 16px;
+    }
+
+    .friend-status-light {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00ffaa;
+      box-shadow: 0 0 8px #00ffaa;
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    .invite-squad-btn {
+      background: rgba(0, 210, 255, 0.15);
+      border: 1px solid #00d2ff;
+      color: #ffffff;
+      padding: 4px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      border-radius: 4px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+
+    .invite-squad-btn:hover {
+      background: #00d2ff;
+      color: #030a16;
+    }
+
+    /* Action Toast */
+    #quick-action-toast {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(6, 18, 32, 0.95);
+      border: 1.5px solid #00d2ff;
+      border-radius: 30px;
+      padding: 10px 26px;
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      color: #ffffff;
+      box-shadow: 0 0 25px rgba(0, 210, 255, 0.5);
+      z-index: 300;
+      transition: transform 0.3s ease;
+      pointer-events: none;
+    }
+
+    #quick-action-toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Responsive: stack auth card on narrow screens */
+    @media (max-width: 750px) {
+      .auth-card {
+        flex-direction: column;
+        width: 96vw;
+        height: 96vh;
+        max-width: none;
+        max-height: none;
+      }
+      .auth-left-panel {
+        width: 100%;
+        min-width: auto;
+        height: 180px;
+        flex-shrink: 0;
+      }
+      .auth-right-panel {
+        padding: 28px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+
+    <!-- ==========================================================
+         STAGE 1: BELIEVERS STUDIOS LOGO (Matches Image 2)
+         Shines like live metal for 2 seconds, then smoothly exits
+         ========================================================== -->
+    <div id="logo-screen">
+      <div class="logo-wrapper" id="logoWrapper" title="Click to trigger metallic shine">
+        <img src="logo.jpg" alt="BELIEVERS STUDIOS" class="logo-img" id="logoImg" />
+        <div class="metallic-sheen-overlay" id="metallicSheen"></div>
+        <div id="flare-tracker">
+          <div class="flare-core"></div>
+          <div class="flare-beam"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================================
+         STAGE 2: COCKPIT DASHBOARD (Matches Image 1 Exactly)
+         With live mouse-responsive wallpaper parallax effect
+         ========================================================== -->
+    <div id="dashboard-screen">
+      <!-- Wallpaper with 3D Parallax Tilt -->
+      <div class="dashboard-bg-wrapper" id="cockpitBg"></div>
+
+      <!-- Cockpit Light & Dust Particles Canvas -->
+      <canvas id="cockpit-dust-canvas"></canvas>
+      <div class="cockpit-cursor-light" id="cursorLight"></div>
+
+      <!-- TOP RIGHT CORNER: SIGN IN BUTTON (Matches Image 1) -->
+      <div class="top-right-nav">
+        <!-- Unauthenticated Button -->
+        <button class="cockpit-sign-in-btn" id="openAuthModalBtn">
+          <span class="user-icon">&#128100;</span>
+          <span>SIGN IN</span>
+        </button>
+
+        <!-- Authenticated Cadet Profile Badge -->
+        <div class="user-profile-badge" id="cadetProfileBadge">
+          <div class="profile-avatar-circle" id="profileInitial">C</div>
+          <div class="profile-details">
+            <span class="profile-callsign" id="profileCallsign">ASTRONAUT</span>
+            <span class="profile-rank">RANK: JUNIOR ASTRONAUT</span>
+          </div>
+          <button class="sign-out-btn" id="signOutBtn" title="Sign Out">LOG OUT</button>
+        </div>
+      </div>
+
+      <!-- BOTTOM LEFT CORNER: 4 BUTTONS (Matches Image 1 Exactly) -->
+      <div class="cockpit-menu-stack">
+        <!-- 1. NEW GAME (Rocket icon) -->
+        <button class="cockpit-btn" id="btnNewGame">
+          <div class="btn-icon-wrapper">&#128640;</div>
+          <div class="btn-text-content">
+            <div class="btn-primary-title">NEW GAME</div>
+          </div>
+        </button>
+
+        <!-- 2. RESUME (Play icon) -->
+        <button class="cockpit-btn" id="btnResume">
+          <div class="btn-icon-wrapper">&#9654;</div>
+          <div class="btn-text-content">
+            <div class="btn-primary-title">RESUME</div>
+          </div>
+        </button>
+
+        <!-- 3. MULTIPLAYER (Users icon + Lock + Subtitle) -->
+        <button class="cockpit-btn" id="btnMultiplayer">
+          <div class="btn-icon-wrapper">&#128101;</div>
+          <div class="btn-text-content">
+            <div class="btn-primary-title">
+              <span>MULTIPLAYER</span>
+              <span class="lock-icon-span" id="mpLockIcon">&#128274;</span>
+            </div>
+            <div class="btn-subtitle" id="mpSubtitle">(Requires Account Sign Up)</div>
+          </div>
+        </button>
+
+        <!-- 4. SETTINGS (Gear icon + Subtitle: Sound • Music • Sensitivity) -->
+        <button class="cockpit-btn" id="btnSettings">
+          <div class="btn-icon-wrapper">&#9881;</div>
+          <div class="btn-text-content">
+            <div class="btn-primary-title">SETTINGS</div>
+            <div class="btn-subtitle">Sound &bull; Music &bull; Sensitivity</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Replay Intro Shortcut Button -->
+      <button class="replay-logo-btn" id="replayIntroBtn">&#8635; REPLAY LOGO (2s)</button>
+    </div>
+
+    <!-- ==========================================================
+         AUTH MODAL: SIGN IN, REGISTRATION & OTP VERIFICATION
+         Redesigned split-panel (astronaut left, form right)
+         ========================================================== -->
+    <div class="modal-backdrop" id="authModal">
+      <div class="auth-card">
+        <button class="auth-close-btn" id="closeAuthModalBtn">&times;</button>
+
+        <!-- LEFT PANEL: Astronaut hero -->
+        <div class="auth-left-panel">
+          <div class="auth-left-text">
+            <div class="auth-left-title">Private</div>
+            <div class="auth-left-subtitle">MISSION FOR MARS</div>
+            <div style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.28em; color: #ff6a38; text-transform: uppercase; margin-top: 4px; text-shadow: 0 0 10px rgba(255,106,56,0.6);">EXPLORATION</div>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL: Form -->
+        <div class="auth-right-panel">
+
+          <!-- ===== LOGIN VIEW (shown by default when SIGN IN is clicked) ===== -->
+          <div id="loginViewBox">
+            <div class="auth-welcome-heading">Welcome Back</div>
+            <div class="auth-welcome-sub">Enter your credentials for Mission MARS</div>
+
+            <div class="auth-input-group">
+              <span class="auth-field-icon">&#128100;</span>
+              <input type="text" class="auth-input" id="loginIdentifier" placeholder="Username or Email" autocomplete="off" />
+            </div>
+
+            <div class="auth-input-group">
+              <span class="auth-field-icon">&#128274;</span>
+              <input type="password" class="auth-input" id="loginPassword" placeholder="Password" />
+              <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility(this)">&#128065;</button>
+            </div>
+
+            <div class="auth-options-row">
+              <label class="auth-remember-label">
+                <input type="checkbox" /> Remember me
+              </label>
+              <button class="auth-forgot-link">Forgot Password?</button>
+            </div>
+
+            <button class="auth-submit-btn" id="btnPerformLogin">LOGIN NOW</button>
+
+            <div class="auth-divider"><span>OR CONTINUE WITH</span></div>
+
+            <div class="auth-social-row">
+              <button class="auth-social-btn" onclick="showActionToast('Google login coming soon!')">
+                <span class="social-icon-google"></span> Google
+              </button>
+              <button class="auth-social-btn" onclick="showActionToast('Facebook login coming soon!')">
+                <span class="social-icon-fb">f</span> Facebook
+              </button>
+            </div>
+
+            <div class="auth-switch-text">
+              Don't have an account?
+              <button class="auth-switch-link" id="tabRegisterBtn">Request Clearance</button>
+            </div>
+          </div>
+
+          <!-- ===== REGISTER VIEW ===== -->
+          <div id="registerViewBox" style="display:none;">
+            <div class="auth-welcome-heading">Create Account</div>
+            <div class="auth-welcome-sub">Register as a new Space Cadet</div>
+
+            <div class="auth-input-group">
+              <span class="auth-field-icon">&#128100;</span>
+              <input type="text" class="auth-input" id="regFullName" placeholder="Full Name" autocomplete="off" />
+            </div>
+
+            <div class="auth-input-group">
+              <span class="auth-field-icon">&#127775;</span>
+              <input type="text" class="auth-input" id="regStageName" placeholder="Stage Name (shown to other players)" autocomplete="off" />
+            </div>
+
+            <div class="auth-input-group">
+              <span class="auth-field-icon">&#9993;</span>
+              <input type="email" class="auth-input" id="regEmail" placeholder="Email Address" autocomplete="off" />
+            </div>
+
+            <div class="auth-input-group">
+              <span class="auth-field-icon">&#128274;</span>
+              <input type="password" class="auth-input" id="regPassword" placeholder="Password (min 6 characters)" />
+              <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility(this)">&#128065;</button>
+            </div>
+
+            <div class="auth-input-group">
+              <span class="auth-field-icon">&#128274;</span>
+              <input type="password" class="auth-input" id="regConfirmPassword" placeholder="Confirm Password" />
+              <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility(this)">&#128065;</button>
+            </div>
+
+            <button class="auth-submit-btn" id="btnSendOtp">SEND VERIFICATION OTP &rarr;</button>
+
+            <div class="auth-switch-text" style="margin-top:18px;">
+              Already have an account?
+              <button class="auth-switch-link" id="tabLoginBtn">Login here</button>
+            </div>
+          </div>
+
+          <!-- ===== OTP VERIFICATION VIEW ===== -->
+          <div class="otp-stage-container" id="otpViewBox">
+            <div class="auth-welcome-heading" style="text-align:center;">Verify Email</div>
+            <div class="otp-info-p">
+              Verification code sent to:<br />
+              <span class="otp-email-highlight" id="otpTargetEmail">cadet@agency.space</span><br />
+              Enter the 6-digit code below.
+            </div>
+
+            <div class="otp-slots-row">
+              <input type="text" maxlength="1" class="otp-box-digit" />
+              <input type="text" maxlength="1" class="otp-box-digit" />
+              <input type="text" maxlength="1" class="otp-box-digit" />
+              <input type="text" maxlength="1" class="otp-box-digit" />
+              <input type="text" maxlength="1" class="otp-box-digit" />
+              <input type="text" maxlength="1" class="otp-box-digit" />
+            </div>
+
+            <div class="otp-timer-text" id="otpCountdownTimer">CODE EXPIRES IN: 60s</div>
+            <button class="auth-submit-btn" id="btnVerifyOtp">VERIFY & CREATE ACCOUNT &rarr;</button>
+            <div style="text-align:center; margin-top:12px;">
+              <button class="auth-switch-link" id="btnResendOtp">Resend Code</button>
+            </div>
+          </div>
+
+        </div><!-- /auth-right-panel -->
+      </div><!-- /auth-card -->
+    </div>
+
+    <!-- ==========================================================
+         SETTINGS MODAL: SOUND, MUSIC, SENSITIVITY
+         ========================================================== -->
+    <div class="modal-backdrop" id="settingsModal">
+      <div class="cockpit-modal-window">
+        <div class="modal-header-row">
+          <div class="modal-headline">&#9881; COCKPIT SETTINGS</div>
+          <button class="modal-close-cross" id="closeSettingsBtn">&times;</button>
+        </div>
+
+        <!-- Master Sound -->
+        <div class="slider-row">
+          <div class="slider-label-box">
+            <span class="slider-main-title">Sound</span>
+            <span class="slider-sub-title">Cockpit audio & thruster sound effects</span>
+          </div>
+          <div class="slider-control-box">
+            <input type="range" min="0" max="100" value="85" class="styled-range" id="soundSlider" />
+            <span class="slider-number-display" id="soundVal">85%</span>
+          </div>
+        </div>
+
+        <!-- Atmospheric Music -->
+        <div class="slider-row">
+          <div class="slider-label-box">
+            <span class="slider-main-title">Music</span>
+            <span class="slider-sub-title">Deep space atmospheric orchestration</span>
+          </div>
+          <div class="slider-control-box">
+            <input type="range" min="0" max="100" value="70" class="styled-range" id="musicSlider" />
+            <span class="slider-number-display" id="musicVal">70%</span>
+          </div>
+        </div>
+
+        <!-- Sensitivity -->
+        <div class="slider-row">
+          <div class="slider-label-box">
+            <span class="slider-main-title">Sensitivity</span>
+            <span class="slider-sub-title">Flight stick & mouse look response</span>
+          </div>
+          <div class="slider-control-box">
+            <input type="range" min="10" max="300" value="120" class="styled-range" id="sensSlider" />
+            <span class="slider-number-display" id="sensVal">1.2x</span>
+          </div>
+        </div>
+
+        <button class="action-submit-btn" id="saveSettingsBtn">SAVE COCKPIT CONFIGURATION</button>
+      </div>
+    </div>
+
+    <!-- ==========================================================
+         MULTIPLAYER MODAL: CREW SQUADRON & FRIENDS
+         ========================================================== -->
+    <div class="modal-backdrop" id="multiplayerModal">
+      <div class="cockpit-modal-window">
+        <div class="modal-header-row">
+          <div class="modal-headline">&#128101; CREW SQUADRON &amp; MULTIPLAYER</div>
+          <button class="modal-close-cross" id="closeMultiplayerBtn">&times;</button>
+        </div>
+
+        <div style="font-size:0.82rem; color:#92c5e5; margin-bottom:12px;">
+          SECTOR FREQUENCY: <span style="color:#00d2ff; font-weight:700;">ORBITAL SQUAD LINK ACTIVE</span>
+        </div>
+
+        <!-- Add Friend Form -->
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <input type="text" class="field-input" id="friendStageNameInput" placeholder="Enter Friend's Stage Name (e.g. COSMO_PILOT)" />
+          <button class="action-submit-btn" id="addFriendBtn" style="width:130px; margin-top:0;">+ ADD</button>
+        </div>
+
+        <div class="field-label">LINKED SQUAD CADETS (<span id="friendCountNum">2</span>)</div>
+        <div class="friends-scroll-area" id="friendsScrollBox"></div>
+
+        <button class="action-submit-btn" id="initSquadSessionBtn">&#128640; INITIALIZE CO-OP FLIGHT SESSION</button>
+      </div>
+    </div>
+
+    <!-- Sub-Space Incoming Transmission Toast (Simulated OTP Delivery) -->
+    <div id="incoming-otp-toast">
+      <div class="toast-header-tag">&#128225; ORBITAL COMMS RELAY &bull; INCOMING BEACON</div>
+      <div class="toast-content-text" id="toastBodyText">Verification code incoming...</div>
+    </div>
+
+    <!-- Action Toast -->
+    <div id="quick-action-toast">CADET NOTIFICATION</div>
+  </div>
+
+  <script src="three.min.js"></script>
+  <script src="game-engine.js"></script>
+  <script src="game-intro.js"></script>
+  <script>
+    /* ==========================================================
+       0. PASSWORD TOGGLE HELPER
+       ========================================================== */
+    function togglePasswordVisibility(btn) {
+      const input = btn.parentElement.querySelector('.auth-input[type="password"], .auth-input[type="text"]');
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerHTML = '&#128064;'; // open eyes
+      } else {
+        input.type = 'password';
+        btn.innerHTML = '&#128065;'; // eye
+      }
+    }
+
+    /* ==========================================================
+       1. SYNTHESIZED WEB AUDIO ENGINE
+       ========================================================== */
+    let audioCtx = null;
+    let masterSoundVol = 0.85;
+    let musicSoundVol = 0.70;
+    let flightSensitivity = 1.20;
+
+    function initAudioEngine() {
+      if (!audioCtx) {
+        const AudioClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioClass();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playBeepSound(freq = 600, dur = 0.08, type = 'sine') {
+      try {
+        initAudioEngine();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.08 * masterSoundVol, audioCtx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+      } catch(e) {}
+    }
+
+    function playLiveMetallicShineSound() {
+      try {
+        initAudioEngine();
+        const now = audioCtx.currentTime;
+
+        // Sub-bass cinematic whoosh swell
+        const subOsc = audioCtx.createOscillator();
+        const subGain = audioCtx.createGain();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(48, now);
+        subOsc.frequency.exponentialRampToValueAtTime(78, now + 1.1);
+        subOsc.frequency.exponentialRampToValueAtTime(32, now + 2.3);
+
+        subGain.gain.setValueAtTime(0.001, now);
+        subGain.gain.linearRampToValueAtTime(0.42 * masterSoundVol, now + 0.6);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+
+        subOsc.connect(subGain);
+        subGain.connect(audioCtx.destination);
+        subOsc.start(now);
+        subOsc.stop(now + 2.6);
+
+        // High crystalline metallic gleam harmonics
+        [1250, 1860, 2480, 3120].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const delay = idx * 0.15;
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + 0.3 + delay);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.35, now + 1.3 + delay);
+
+          gain.gain.setValueAtTime(0.0001, now + 0.3 + delay);
+          gain.gain.linearRampToValueAtTime((0.05 * masterSoundVol) / (idx + 1), now + 0.7 + delay);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.1 + delay);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + 0.3 + delay);
+          osc.stop(now + 2.3 + delay);
+        });
+      } catch(e) {}
+    }
+
+    /* ==========================================================
+       2. STAGE 1 LOGO SHINE & STAGE 2 TRANSITION CONTROLLER
+       Shines live for 2.0s, then enters the dashboard
+       ========================================================== */
+    const logoScreen = document.getElementById('logo-screen');
+    const dashboardScreen = document.getElementById('dashboard-screen');
+    const metallicSheen = document.getElementById('metallicSheen');
+    const flareTracker = document.getElementById('flare-tracker');
+    const logoWrapper = document.getElementById('logoWrapper');
+    const replayIntroBtn = document.getElementById('replayIntroBtn');
+
+    let flareAnimId = null;
+    let autoTransitionTimer = null;
+    let hasTransitioned = false;
+
+    function triggerLogoShine() {
+      metallicSheen.classList.remove('active-sweep');
+      void metallicSheen.offsetWidth; // DOM reflow
+      metallicSheen.classList.add('active-sweep');
+
+      playLiveMetallicShineSound();
+
+      if (flareAnimId) cancelAnimationFrame(flareAnimId);
+      const startTime = performance.now();
+      const duration = 2000;
+
+      function updateFlare(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(1.0, elapsed / duration);
+        const rect = logoWrapper.getBoundingClientRect();
+
+        const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+        const flareX = rect.left + rect.width * ease;
+        const flareY = rect.top + rect.height * 0.5;
+
+        flareTracker.style.left = `${flareX}px`;
+        flareTracker.style.top = `${flareY}px`;
+
+        let opacity = 0;
+        if (progress > 0.06 && progress < 0.94) {
+          opacity = Math.sin((progress - 0.06) / 0.88 * Math.PI);
+        }
+        flareTracker.style.opacity = (opacity * 1.25).toFixed(3);
+
+        if (progress < 1.0) {
+          flareAnimId = requestAnimationFrame(updateFlare);
+        } else {
+          flareTracker.style.opacity = '0';
+        }
+      }
+
+      flareAnimId = requestAnimationFrame(updateFlare);
+    }
+
+    function transitionToDashboard() {
+      if (hasTransitioned) return;
+      hasTransitioned = true;
+      clearTimeout(autoTransitionTimer);
+
+      console.log('[BELIEVERS] transitionToDashboard called');
+      logoScreen.classList.add('hide');
+      // After CSS fade (700ms), force display:none so it can never block
+      setTimeout(() => {
+        logoScreen.style.display = 'none';
+        console.log('[BELIEVERS] logo-screen set to display:none');
+      }, 750);
+
+      playBeepSound(880, 0.15, 'triangle');
+    }
+
+    function runLogoIntroSequence() {
+      hasTransitioned = false;
+      logoScreen.style.display = 'flex';
+      logoScreen.classList.remove('hide');
+
+      console.log('[BELIEVERS] runLogoIntroSequence started');
+      triggerLogoShine();
+
+      clearTimeout(autoTransitionTimer);
+      // Guaranteed 2.0s duration then transition
+      autoTransitionTimer = setTimeout(() => {
+        console.log('[BELIEVERS] 2s timer fired, transitioning...');
+        transitionToDashboard();
+      }, 2000);
+    }
+
+    // Auto-start immediately (handles loading, interactive, complete states)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', runLogoIntroSequence);
+    } else {
+      runLogoIntroSequence();
+    }
+
+    // Clicking anywhere on the logo screen also transitions immediately
+    logoScreen.addEventListener('click', () => {
+      transitionToDashboard();
+    });
+
+    // Replay intro button
+    replayIntroBtn.addEventListener('click', () => {
+      runLogoIntroSequence();
+    });
+
+    /* ==========================================================
+       3. INTERACTIVE MOUSE PARALLAX & COCKPIT LIGHTING
+       Moves wallpaper and floating space dust when cursor moves
+       ========================================================== */
+    const cockpitBg = document.getElementById('cockpitBg');
+    const cursorLight = document.getElementById('cursorLight');
+    const dustCanvas = document.getElementById('cockpit-dust-canvas');
+    const dustCtx = dustCanvas.getContext('2d');
+
+    let winW = (dustCanvas.width = window.innerWidth);
+    let winH = (dustCanvas.height = window.innerHeight);
+
+    window.addEventListener('resize', () => {
+      winW = dustCanvas.width = window.innerWidth;
+      winH = dustCanvas.height = window.innerHeight;
+      initDustParticles();
+    });
+
+    let targetMouseX = winW / 2;
+    let targetMouseY = winH / 2;
+    let currMouseX = winW / 2;
+    let currMouseY = winH / 2;
+
+    window.addEventListener('mousemove', (e) => {
+      targetMouseX = e.clientX;
+      targetMouseY = e.clientY;
+      cursorLight.style.left = `${e.clientX}px`;
+      cursorLight.style.top = `${e.clientY}px`;
+    });
+
+    // Floating illuminated dust particles in cockpit
+    const DUST_COUNT = 45;
+    let dustParticles = [];
+
+    function initDustParticles() {
+      dustParticles = [];
+      for (let i = 0; i < DUST_COUNT; i++) {
+        dustParticles.push({
+          x: Math.random() * winW,
+          y: Math.random() * winH,
+          vx: (Math.random() - 0.5) * 0.35,
+          vy: (Math.random() - 0.5) * 0.35,
+          radius: Math.random() * 1.8 + 0.6,
+          alpha: Math.random() * 0.4 + 0.15,
+          depth: Math.random() * 0.8 + 0.2
+        });
+      }
+    }
+
+    function animateCockpitParallax() {
+      // Smooth interpolation for fluid cinematic inertia
+      currMouseX += (targetMouseX - currMouseX) * 0.06;
+      currMouseY += (targetMouseY - currMouseY) * 0.06;
+
+      const normX = (currMouseX - winW / 2) / (winW / 2);
+      const normY = (currMouseY - winH / 2) / (winH / 2);
+
+      // Multi-axis 3D camera pan & tilt applied to wallpaper
+      const panX = -normX * 18;
+      const panY = -normY * 14;
+      const rotY = normX * 2.2;
+      const rotX = -normY * 2.0;
+
+      cockpitBg.style.transform = `translate(${panX}px, ${panY}px) rotateY(${rotY}deg) rotateX(${rotX}deg) scale(1.05)`;
+
+      // Render floating dust motes
+      dustCtx.clearRect(0, 0, winW, winH);
+      for (let p of dustParticles) {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < -10) p.x = winW + 10;
+        if (p.x > winW + 10) p.x = -10;
+        if (p.y < -10) p.y = winH + 10;
+        if (p.y > winH + 10) p.y = -10;
+
+        const drawX = p.x + normX * 25 * p.depth;
+        const drawY = p.y + normY * 25 * p.depth;
+
+        // Proximity to cursor illuminates the dust
+        const dx = currMouseX - drawX;
+        const dy = currMouseY - drawY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const lightBoost = Math.max(0, 1 - dist / 220);
+
+        const currentAlpha = Math.min(1, p.alpha + lightBoost * 0.6);
+        const currentSize = p.radius + lightBoost * 1.5;
+
+        dustCtx.beginPath();
+        dustCtx.arc(drawX, drawY, currentSize, 0, Math.PI * 2);
+        dustCtx.fillStyle = `rgba(180, 235, 255, ${currentAlpha})`;
+        dustCtx.fill();
+      }
+
+      requestAnimationFrame(animateCockpitParallax);
+    }
+
+    initDustParticles();
+    animateCockpitParallax();
+
+    /* ==========================================================
+       4. AUTHENTICATION & QUANTUM OTP STATE ENGINE
+       ========================================================== */
+    let currentCadet = null;
+    let activeOtpCode = null;
+    let pendingCadetInfo = null;
+    let otpCountdownInterval = null;
+
+    function loadSavedCadetSession() {
+      const saved = localStorage.getItem('believers_cadet_session');
+      if (saved) {
+        try {
+          currentCadet = JSON.parse(saved);
+          syncAuthUI();
+        } catch(e) {}
+      }
+    }
+
+    function syncAuthUI() {
+      const openBtn = document.getElementById('openAuthModalBtn');
+      const badge = document.getElementById('cadetProfileBadge');
+      const callsignEl = document.getElementById('profileCallsign');
+      const initialEl = document.getElementById('profileInitial');
+      const mpLockIcon = document.getElementById('mpLockIcon');
+      const mpSubtitle = document.getElementById('mpSubtitle');
+
+      if (currentCadet) {
+        // Logged In
+        openBtn.style.display = 'none';
+        badge.style.display = 'flex';
+        callsignEl.textContent = currentCadet.stageName.toUpperCase();
+        initialEl.textContent = currentCadet.stageName.charAt(0).toUpperCase();
+
+        // Unlock Multiplayer
+        mpLockIcon.innerHTML = '&#127760;';
+        mpLockIcon.style.color = '#00ffaa';
+        mpSubtitle.textContent = 'Crew Squadron Active';
+        mpSubtitle.style.color = '#00ffaa';
+      } else {
+        // Logged Out
+        openBtn.style.display = 'flex';
+        badge.style.display = 'none';
+
+        // Lock Multiplayer
+        mpLockIcon.innerHTML = '&#128274;';
+        mpLockIcon.style.color = '#00d2ff';
+        mpSubtitle.textContent = '(Requires Account Sign Up)';
+        mpSubtitle.style.color = '#92c5e5';
+      }
+    }
+
+    // Modal elements
+    const authModal = document.getElementById('authModal');
+    const openAuthModalBtn = document.getElementById('openAuthModalBtn');
+    const closeAuthModalBtn = document.getElementById('closeAuthModalBtn');
+    const tabRegisterBtn = document.getElementById('tabRegisterBtn');
+    const tabLoginBtn = document.getElementById('tabLoginBtn');
+    const registerViewBox = document.getElementById('registerViewBox');
+    const loginViewBox = document.getElementById('loginViewBox');
+    const otpViewBox = document.getElementById('otpViewBox');
+
+    function openAuthModal(mode = 'login') {
+      authModal.style.display = 'flex';
+      otpViewBox.style.display = 'none';
+
+      if (mode === 'register') {
+        registerViewBox.style.display = 'block';
+        loginViewBox.style.display = 'none';
+      } else {
+        loginViewBox.style.display = 'block';
+        registerViewBox.style.display = 'none';
+      }
+    }
+
+    openAuthModalBtn.addEventListener('click', () => {
+      playBeepSound(700, 0.08);
+      openAuthModal('login');
+    });
+
+    closeAuthModalBtn.addEventListener('click', () => {
+      authModal.style.display = 'none';
+      clearInterval(otpCountdownInterval);
+    });
+
+    tabRegisterBtn.addEventListener('click', () => openAuthModal('register'));
+    tabLoginBtn.addEventListener('click', () => openAuthModal('login'));
+
+    // Toast helpers
+    const incomingOtpToast = document.getElementById('incoming-otp-toast');
+    const toastBodyText = document.getElementById('toastBodyText');
+    const quickActionToast = document.getElementById('quick-action-toast');
+    let toastTimeout = null;
+
+    function showActionToast(msg) {
+      quickActionToast.textContent = msg;
+      quickActionToast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        quickActionToast.classList.remove('show');
+      }, 3000);
+    }
+    window.showActionToast = showActionToast;
+
+    function dispatchSimulatedOtpBeacon(code, email) {
+      toastBodyText.innerHTML = `VERIFICATION BEACON TRANSMITTED TO <span style="color:#00d2ff; font-weight:700;">${email}</span><br />CODE: <span class="toast-otp-code">${code}</span> (Valid for 60s)`;
+      incomingOtpToast.classList.add('active');
+      playBeepSound(980, 0.22, 'triangle');
+
+      setTimeout(() => {
+        incomingOtpToast.classList.remove('active');
+      }, 10000);
+    }
+
+    // Send OTP handler
+    const btnSendOtp = document.getElementById('btnSendOtp');
+    const otpTargetEmail = document.getElementById('otpTargetEmail');
+    const otpCountdownTimer = document.getElementById('otpCountdownTimer');
+    const otpBoxDigits = document.querySelectorAll('.otp-box-digit');
+
+    btnSendOtp.addEventListener('click', () => {
+      const fullName = document.getElementById('regFullName').value.trim();
+      const stageName = document.getElementById('regStageName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const pass = document.getElementById('regPassword').value;
+      const confirmPass = document.getElementById('regConfirmPassword').value;
+
+      if (!fullName || !stageName || !email || !pass || !confirmPass) {
+        showActionToast('⚠️ ALL FIELDS REQUIRED FOR CADET SIGN UP');
+        playBeepSound(220, 0.25, 'sawtooth');
+        return;
+      }
+
+      if (!email.includes('@') || !email.includes('.')) {
+        showActionToast('⚠️ ENTER A VALID COMMS EMAIL');
+        playBeepSound(220, 0.25, 'sawtooth');
+        return;
+      }
+
+      if (pass.length < 6) {
+        showActionToast('⚠️ PASSWORD MUST BE AT LEAST 6 CHARACTERS');
+        playBeepSound(220, 0.25, 'sawtooth');
+        return;
+      }
+
+      if (pass !== confirmPass) {
+        showActionToast('⚠️ PASSWORDS DO NOT MATCH');
+        playBeepSound(220, 0.25, 'sawtooth');
+        return;
+      }
+
+      // Generate 6-digit cryptographic OTP code
+      activeOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      pendingCadetInfo = { fullName, stageName, email, pass };
+
+      registerViewBox.style.display = 'none';
+      loginViewBox.style.display = 'none';
+      otpViewBox.style.display = 'block';
+      otpTargetEmail.textContent = email;
+
+      otpBoxDigits.forEach(d => (d.value = ''));
+      otpBoxDigits[0].focus();
+
+      dispatchSimulatedOtpBeacon(activeOtpCode, email);
+      startOtpTimer();
+    });
+
+    let countdownSeconds = 60;
+    const otpCountdownDisplay = document.getElementById('otpCountdownTimer');
+    function startOtpTimer() {
+      clearInterval(otpCountdownInterval);
+      countdownSeconds = 60;
+      otpCountdownDisplay.textContent = `BEACON EXPIRES IN: ${countdownSeconds}s`;
+      otpCountdownDisplay.style.color = '#ffd000';
+
+      otpCountdownInterval = setInterval(() => {
+        countdownSeconds--;
+        if (countdownSeconds <= 0) {
+          clearInterval(otpCountdownInterval);
+          otpCountdownDisplay.textContent = 'BEACON EXPIRED. PLEASE RESEND CODE.';
+          otpCountdownDisplay.style.color = '#ff3366';
+          activeOtpCode = null;
+        } else {
+          otpCountdownDisplay.textContent = `BEACON EXPIRES IN: ${countdownSeconds}s`;
+        }
+      }, 1000);
+    }
+
+    // OTP Input auto-focus
+    otpBoxDigits.forEach((digit, idx) => {
+      digit.addEventListener('input', () => {
+        if (digit.value && idx < otpBoxDigits.length - 1) {
+          otpBoxDigits[idx + 1].focus();
+        }
+      });
+      digit.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !digit.value && idx > 0) {
+          otpBoxDigits[idx - 1].focus();
+        }
+      });
+    });
+
+    document.getElementById('btnResendOtp').addEventListener('click', () => {
+      if (!pendingCadetInfo) return;
+      activeOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      dispatchSimulatedOtpBeacon(activeOtpCode, pendingCadetInfo.email);
+      startOtpTimer();
+      showActionToast('NEW VERIFICATION CODE TRANSMITTED');
+    });
+
+    // Verify OTP & finalize account creation
+    document.getElementById('btnVerifyOtp').addEventListener('click', () => {
+      let enteredCode = '';
+      otpBoxDigits.forEach(d => (enteredCode += d.value.trim()));
+
+      if (enteredCode.length < 6) {
+        showActionToast('⚠️ ENTER ALL 6 DIGITS');
+        playBeepSound(220, 0.25, 'sawtooth');
+        return;
+      }
+
+      if (!activeOtpCode || enteredCode !== activeOtpCode) {
+        showActionToast('❌ INVALID OR EXPIRED VERIFICATION CODE');
+        playBeepSound(180, 0.35, 'sawtooth');
+        return;
+      }
+
+      // Successful verification
+      clearInterval(otpCountdownInterval);
+      currentCadet = {
+        fullName: pendingCadetInfo.fullName,
+        stageName: pendingCadetInfo.stageName,
+        email: pendingCadetInfo.email,
+        pass: pendingCadetInfo.pass,
+        rank: 'Junior Astronaut',
+        joinedAt: new Date().toISOString()
+      };
+
+      localStorage.setItem('believers_cadet_session', JSON.stringify(currentCadet));
+      const accounts = JSON.parse(localStorage.getItem('believers_cadet_accounts') || '[]');
+      accounts.push(currentCadet);
+      localStorage.setItem('believers_cadet_accounts', JSON.stringify(accounts));
+
+      authModal.style.display = 'none';
+      syncAuthUI();
+      showActionToast(`⭐ WELCOME ABOARD, CADET ${currentCadet.stageName.toUpperCase()}!`);
+      playBeepSound(1200, 0.3, 'sine');
+    });
+
+    // Login for existing accounts
+    document.getElementById('btnPerformLogin').addEventListener('click', () => {
+      const id = document.getElementById('loginIdentifier').value.trim().toLowerCase();
+      const pass = document.getElementById('loginPassword').value;
+
+      if (!id || !pass) {
+        showActionToast('⚠️ ENTER BOTH IDENTIFIER AND PASSWORD');
+        playBeepSound(220, 0.25, 'sawtooth');
+        return;
+      }
+
+      const accounts = JSON.parse(localStorage.getItem('believers_cadet_accounts') || '[]');
+      const found = accounts.find(
+        acc => (acc.email.toLowerCase() === id || acc.stageName.toLowerCase() === id) && acc.pass === pass
+      );
+
+      if (found) {
+        currentCadet = found;
+        localStorage.setItem('believers_cadet_session', JSON.stringify(currentCadet));
+        authModal.style.display = 'none';
+        syncAuthUI();
+        showActionToast(`⭐ RE-AUTHENTICATED: CADET ${currentCadet.stageName.toUpperCase()}`);
+        playBeepSound(1000, 0.2, 'sine');
+      } else {
+        showActionToast('❌ INVALID CREDENTIALS. CHECK STAGE NAME OR PASSWORD.');
+        playBeepSound(180, 0.3, 'sawtooth');
+      }
+    });
+
+    // Log out
+    document.getElementById('signOutBtn').addEventListener('click', () => {
+      currentCadet = null;
+      localStorage.removeItem('believers_cadet_session');
+      syncAuthUI();
+      showActionToast('CADET SIGNED OUT');
+      playBeepSound(440, 0.1, 'sine');
+    });
+
+    /* ==========================================================
+       5. SETTINGS CONTROLLER (SOUND, MUSIC, SENSITIVITY)
+       ========================================================== */
+    const settingsModal = document.getElementById('settingsModal');
+    const btnSettings = document.getElementById('btnSettings');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+
+    const soundSlider = document.getElementById('soundSlider');
+    const musicSlider = document.getElementById('musicSlider');
+    const sensSlider = document.getElementById('sensSlider');
+
+    const soundVal = document.getElementById('soundVal');
+    const musicVal = document.getElementById('musicVal');
+    const sensVal = document.getElementById('sensVal');
+
+    btnSettings.addEventListener('click', () => {
+      playBeepSound(650, 0.08);
+      settingsModal.style.display = 'flex';
+    });
+
+    closeSettingsBtn.addEventListener('click', () => {
+      settingsModal.style.display = 'none';
+    });
+
+    soundSlider.addEventListener('input', (e) => {
+      masterSoundVol = e.target.value / 100;
+      soundVal.textContent = `${e.target.value}%`;
+      playBeepSound(700, 0.04);
+    });
+
+    musicSlider.addEventListener('input', (e) => {
+      musicSoundVol = e.target.value / 100;
+      musicVal.textContent = `${e.target.value}%`;
+    });
+
+    sensSlider.addEventListener('input', (e) => {
+      flightSensitivity = (e.target.value / 100).toFixed(1);
+      sensVal.textContent = `${flightSensitivity}x`;
+    });
+
+    document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+      const cfg = { masterSoundVol, musicSoundVol, flightSensitivity };
+      localStorage.setItem('believers_cockpit_settings', JSON.stringify(cfg));
+      settingsModal.style.display = 'none';
+      showActionToast('SETTINGS SAVED TO AVIONICS MEMORY');
+      playBeepSound(880, 0.15);
+    });
+
+    // Load persisted settings
+    const savedCfg = localStorage.getItem('believers_cockpit_settings');
+    if (savedCfg) {
+      try {
+        const c = JSON.parse(savedCfg);
+        masterSoundVol = c.masterSoundVol ?? 0.85;
+        musicSoundVol = c.musicSoundVol ?? 0.70;
+        flightSensitivity = c.flightSensitivity ?? 1.20;
+
+        soundSlider.value = Math.round(masterSoundVol * 100);
+        musicSlider.value = Math.round(musicSoundVol * 100);
+        sensSlider.value = Math.round(flightSensitivity * 100);
+
+        soundVal.textContent = `${soundSlider.value}%`;
+        musicVal.textContent = `${musicSlider.value}%`;
+        sensVal.textContent = `${flightSensitivity}x`;
+      } catch(e) {}
+    }
+
+    /* ==========================================================
+       6. MULTIPLAYER & SQUADRON FRIENDS CONTROLLER
+       Only accessible when cadet has signed in
+       ========================================================== */
+    const multiplayerModal = document.getElementById('multiplayerModal');
+    const btnMultiplayer = document.getElementById('btnMultiplayer');
+    const closeMultiplayerBtn = document.getElementById('closeMultiplayerBtn');
+    const friendsScrollBox = document.getElementById('friendsScrollBox');
+    const friendCountNum = document.getElementById('friendCountNum');
+    const friendStageNameInput = document.getElementById('friendStageNameInput');
+    const addFriendBtn = document.getElementById('addFriendBtn');
+
+    let friendsList = JSON.parse(localStorage.getItem('believers_cadet_friends') || 'null');
+    if (!friendsList) {
+      friendsList = [
+        { name: 'ASTRO_MAVERICK', status: 'IN ORBIT' },
+        { name: 'SOLARIS_9', status: 'TRAINING' }
+      ];
+      localStorage.setItem('believers_cadet_friends', JSON.stringify(friendsList));
+    }
+
+    function renderFriendsUI() {
+      friendsScrollBox.innerHTML = '';
+      friendCountNum.textContent = friendsList.length;
+
+      friendsList.forEach(fr => {
+        const row = document.createElement('div');
+        row.className = 'friend-item-card';
+        row.innerHTML = `
+          <div>
+            <span class="friend-status-light"></span>
+            <b style="letter-spacing:0.1em; color:#ffffff;">${fr.name}</b>
+            <span style="font-size:0.72rem; color:#88c8f0; margin-left:8px;">[${fr.status}]</span>
+          </div>
+          <button class="invite-squad-btn" onclick="inviteSquadFriend('${fr.name}')">INVITE SQUAD</button>
+        `;
+        friendsScrollBox.appendChild(row);
+      });
+    }
+
+    window.inviteSquadFriend = function(name) {
+      showActionToast(`TRANSMITTING CO-OP INVITE TO ${name}...`);
+      playBeepSound(920, 0.12, 'triangle');
+    };
+
+    btnMultiplayer.addEventListener('click', () => {
+      if (!currentCadet) {
+        // Enforce user requirement: only accessible if signed in
+        playBeepSound(220, 0.25, 'sawtooth');
+        showActionToast('🔒 PLEASE SIGN IN TO ACCESS MULTIPLAYER & ADD FRIENDS');
+        openAuthModal('register');
+      } else {
+        playBeepSound(700, 0.08);
+        renderFriendsUI();
+        multiplayerModal.style.display = 'flex';
+      }
+    });
+
+    closeMultiplayerBtn.addEventListener('click', () => {
+      multiplayerModal.style.display = 'none';
+    });
+
+    addFriendBtn.addEventListener('click', () => {
+      const name = friendStageNameInput.value.trim().toUpperCase();
+      if (!name) {
+        showActionToast('⚠️ ENTER CADET STAGE NAME');
+        return;
+      }
+      if (friendsList.some(f => f.name === name)) {
+        showActionToast('⚠️ CADET ALREADY IN CREW LIST');
+        return;
+      }
+
+      friendsList.push({ name, status: 'STANDBY' });
+      localStorage.setItem('believers_cadet_friends', JSON.stringify(friendsList));
+      friendStageNameInput.value = '';
+      renderFriendsUI();
+      showActionToast(`CADET ${name} ADDED TO CREW`);
+      playBeepSound(880, 0.12);
+    });
+
+    document.getElementById('initSquadSessionBtn').addEventListener('click', () => {
+      showActionToast('INITIALIZING ORBITAL SQUADRON FREQUENCY...');
+      playBeepSound(1100, 0.2, 'sine');
+      setTimeout(() => {
+        multiplayerModal.style.display = 'none';
+        showActionToast('SQUADRON READY: AWAITING LAUNCH DIRECTIVE');
+      }, 1000);
+    });
+
+    /* ==========================================================
+       7. OTHER COCKPIT BUTTONS: NEW GAME & RESUME (REAL 3D GAMEPLAY)
+       ========================================================== */
+    // Initialize 3D Engine
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.starshipGame) {
+        window.starshipGame.init('game-canvas-container');
+      }
+    });
+
+    document.getElementById('btnNewGame').addEventListener('click', () => {
+      playBeepSound(750, 0.1, 'triangle');
+      // Hide the dashboard and start cinematic intro
+      document.getElementById('dashboard-screen').style.opacity = '0';
+      setTimeout(() => {
+        window.startCinematicIntro(() => {
+          // Continuous handover: immediately start the real-time 3D game inside the damaged starship!
+          if (window.starshipGame) {
+            window.starshipGame.start();
+          }
+        });
+      }, 300);
+    });
+
+    document.getElementById('btnResume').addEventListener('click', () => {
+      playBeepSound(550, 0.1, 'triangle');
+      // Jump directly into the live 3D game world!
+      document.getElementById('dashboard-screen').style.opacity = '0';
+      setTimeout(() => {
+        if (window.starshipGame) {
+          window.starshipGame.start();
+        }
+      }, 300);
+    });
+
+    // Escape Key listener to return to dashboard from game
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Escape' && window.starshipGame && window.starshipGame.active) {
+        window.starshipGame.stop();
+        document.getElementById('dashboard-screen').style.opacity = '1';
+        showActionToast('PAUSED &bull; RETURNED TO COCKPIT DASHBOARD');
+      }
+    });
+
+    // Initialize saved user state
+    loadSavedCadetSession();
+
+    // Universal audio gesture unlock
+    window.addEventListener('click', () => initAudioEngine(), { once: true });
+  </script>
+</body>
+</html>
